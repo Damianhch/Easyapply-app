@@ -3,9 +3,8 @@ import { getSection } from '../../../components/SectionRegistry';
 import { notFound } from 'next/navigation';
 import React, { useEffect } from 'react';
 
-type Params = { params: { slug: string } };
-
-export default function InlineEmbedPage({ params }: Params) {
+export default function InlineEmbedPage(props: any) {
+	const params = (props as any)?.params ?? {};
 	const section = getSection(params.slug);
 	if (!section) return notFound();
 
