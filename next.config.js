@@ -67,8 +67,7 @@ const nextConfig = {
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
-  // Optimize for production
-  swcMinify: true,
+  // Optimize for production (Next 15 uses SWC by default; remove invalid key)
   // Handle static assets
   assetPrefix: process.env.NODE_ENV === 'production' ? undefined : '',
 };
