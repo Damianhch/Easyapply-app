@@ -1,0 +1,46 @@
+name: DB Apply via Pooler
+
+on:
+  workflow_dispatch:
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Generate Prisma Client
+        run: npx prisma@5 generate
+
+      - name: Generate SQL from Prisma schema
+        run: npx prisma@5 migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > schema.sql
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Pooler connectivity smoke test
+        run: psql "$POOLER_URL" -v ON_ERROR_STOP=1 -c "select 1 as ok;"
+        env:
+          POOLER_URL: ${{ secrets.POOLER_URL }}
+
+      - name: Apply schema via pooler
+        run: psql "$POOLER_URL" -v ON_ERROR_STOP=1 -f schema.sql
+        env:
+          POOLER_URL: ${{ secrets.POOLER_URL }}
+
+      - name: Verify tables exist
+        run: |
+          psql "$POOLER_URL" -v ON_ERROR_STOP=1 -c "\dt+" | sed -n '1,120p'
+        env:
+          POOLER_URL: ${{ secrets.POOLER_URL }}
+
+
