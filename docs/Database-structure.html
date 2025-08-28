@@ -1,0 +1,79 @@
+# 	Navn 	Type 	Sammenligning 	Attributter 	Null 	Standard 	Kommentarer 	Ekstra 	Handling
+	1 	id Primær 	bigint(20) 			Nei 	Ingen 		AUTO_INCREMENT 	Endre Endre 	Slett Slett 	
+	2 	user_email 	varchar(255) 	utf8mb4_unicode_ci 		Ja 	NULL 			Endre Endre 	Slett Slett 	
+	3 	user_name 	varchar(255) 	utf8mb4_unicode_ci 		Ja 	NULL 			Endre Endre 	Slett Slett 	
+	4 	application_text 	text 	utf8mb4_unicode_ci 		Ja 	NULL 			Endre Endre 	Slett Slett 	
+	5 	business_name 	varchar(255) 	utf8mb4_unicode_ci 		Ja 	NULL 			Endre Endre 	Slett Slett 	
+	6 	status 	varchar(50) 	utf8mb4_unicode_ci 		Nei 	PENDING 			Endre Endre 	Slett Slett 	
+	7 	accepted_terms 	tinyint(4) 			Nei 	0 			Endre Endre 	Slett Slett 	
+	8 	accepted_timestamp 	datetime 			Ja 	NULL 			Endre Endre 	Slett Slett 	
+	9 	plan_tier 	varchar(50) 	utf8mb4_unicode_ci 		Ja 	FREE 			Endre Endre 	Slett Slett 	
+	10 	applicatio_submitted 	datetime 			Nei 	current_timestamp() 			Endre Endre 	Slett Slett 	
+	11 	tos_ip 	varchar(255) 	utf8mb4_unicode_ci 		Ja 	NULL 			Endre Endre 	Slett Slett 	
+	12 	individual_applicat 	text 	utf8mb4_unicode_ci 		Ja 	NULL 			Endre Endre 	Slett Slett 	
+	13 	cv_text 	text 	utf8mb4_unicode_ci 		Ja 	NULL 			Endre Endre 	Slett Slett 	
+	14 	user_location 	varchar(255) 	utf8mb4_unicode_ci 		Ja 	NULL 			Endre Endre 	Slett Slett 	
+	15 	business_type 	varchar(255) 	utf8mb4_unicode_ci 		Ja 	NULL 			Endre Endre 	Slett Slett 	
+	16 	yearly_income 	int(11) 			Ja 	0 			Endre Endre 	Slett Slett 	
+	17 	expected_yearly_income 	int(11) 			Ja 	0 			Endre Endre 	Slett Slett 	
+	18 	employment_type 	varchar(255) 	utf8mb4_unicode_ci 		Ja 	NULL 			Endre Endre 	Slett Slett 	
+	19 	user_phone 	varchar(255) 	utf8mb4_unicode_ci 		Ja 	NULL 			Endre Endre 	Slett Slett 	
+	20 	possibility_question   text 	utf8mb4_unicode_ci 		Ja 	NULL
+
+    User token databse structure
+    id Primær 	int(11) 			Nei 	Ingen 		AUTO_INCREMENT 	Endre Endre 	Slett Slett 	
+	2 	user_email 	varchar(255) 	utf8mb4_unicode_ci 		Nei 	Ingen 			Endre Endre 	Slett Slett 	
+	3 	refresh_token 	text 	utf8mb4_unicode_ci 		Nei 	Ingen 			Endre Endre 	Slett Slett 	
+	4 	created_at 	datetime 			Nei 	current_timestamp() 		
+
+### Proposed Prisma models (matching Database-structure.html)
+```prisma
+<code_block_to_apply_changes_from>
+model Application {
+  id                      BigInt   @id @default(autoincrement())
+  userEmail               String?  @map("user_email")
+  userName                String?  @map("user_name")
+  applicationText         String?  @db.Text @map("application_text")
+  businessName            String?  @map("business_name")
+  status                  String   @db.VarChar(50) @default("PENDING")
+  acceptedTerms           Boolean  @default(false) @map("accepted_terms")
+  acceptedTimestamp       DateTime? @map("accepted_timestamp")
+  planTier                String?  @db.VarChar(50) @default("FREE") @map("plan_tier")
+  applicatioSubmitted     DateTime @default(now()) @map("applicatio_submitted") // keep exact column name
+  tosIp                   String?  @map("tos_ip")
+  individualApplicat      String?  @db.Text @map("individual_applicat")        // keep exact column name
+  cvText                  String?  @db.Text @map("cv_text")
+  userLocation            String?  @map("user_location")
+  businessType            String?  @map("business_type")
+  yearlyIncome            Int?     @default(0) @map("yearly_income")
+  expectedYearlyIncome    Int?     @default(0) @map("expected_yearly_income")
+  employmentType          String?  @map("employment_type")
+  userPhone               String?  @map("user_phone")
+  possibilityQuestion     String?  @db.Text @map("possibility_question")
+
+  @@map("applications") // change to your actual table name if different
+}
+
+model UserToken {
+  id          Int      @id @default(autoincrement())
+  userEmail   String   @map("user_email")
+  refreshToken String  @db.Text @map("refresh_token")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("user_tokens") // change to your actual table name if different
+}
+```
+
+Notes:
+- Supabase is Postgres, so TinyInt -> Boolean (acceptedTerms).
+- I preserved your exact column names via `@map`, including typos like `applicatio_submitted` and `individual_applicat`.
+- Lengths are constrained where relevant via `@db.VarChar(50/255)`.
+
+### Apply it (against Supabase)
+- Ensure `.env.local` has `DATABASE_URL` pointing to Supabase (often with `?sslmode=require`).
+- Run:
+  ```bash
+  npx prisma generate
+  npx prisma db push
+  ```
+- Verify tables/columns in Supabase. 

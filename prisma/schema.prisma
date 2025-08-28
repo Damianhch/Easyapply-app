@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Application table aligned to Database-structure.html
+model Application {
+  id                   BigInt   @id @default(autoincrement())                                    // bigint(20) AUTO_INCREMENT
+  userEmail            String?  @db.VarChar(255) @map("user_email")                              // varchar(255) NULL
+  userName             String?  @db.VarChar(255) @map("user_name")                               // varchar(255) NULL
+  applicationText      String?  @db.Text @map("application_text")                                // text NULL
+  businessName         String?  @db.VarChar(255) @map("business_name")                           // varchar(255) NULL
+  status               String   @db.VarChar(50) @default("PENDING")                              // varchar(50) NOT NULL default PENDING
+  acceptedTerms        Boolean  @default(false) @map("accepted_terms")                           // tinyint(4) -> boolean
+  acceptedTimestamp    DateTime? @map("accepted_timestamp")                                      // datetime NULL
+  planTier             String?  @db.VarChar(50) @default("FREE") @map("plan_tier")             // varchar(50) default FREE
+  applicatioSubmitted  DateTime @default(now()) @map("applicatio_submitted")                     // datetime NOT NULL default current_timestamp
+  tosIp                String?  @db.VarChar(255) @map("tos_ip")                                  // varchar(255) NULL
+  individualApplicat   String?  @db.Text @map("individual_applicat")                             // text NULL
+  cvText               String?  @db.Text @map("cv_text")                                         // text NULL
+  userLocation         String?  @db.VarChar(255) @map("user_location")                           // varchar(255) NULL
+  businessType         String?  @db.VarChar(255) @map("business_type")                           // varchar(255) NULL
+  yearlyIncome         Int?     @default(0) @map("yearly_income")                                // int(11) default 0
+  expectedYearlyIncome Int?     @default(0) @map("expected_yearly_income")                       // int(11) default 0
+  employmentType       String?  @db.VarChar(255) @map("employment_type")                         // varchar(255) NULL
+  userPhone            String?  @db.VarChar(255) @map("user_phone")                              // varchar(255) NULL
+  possibilityQuestion  String?  @db.Text @map("possibility_question")                            // text NULL
+
+  @@map("applications")
+}
+
+// User token structure
+model UserToken {
+  id           Int      @id @default(autoincrement())                                             // int(11) AUTO_INCREMENT
+  userEmail    String   @db.VarChar(255) @map("user_email")                                      // varchar(255) NOT NULL
+  refreshToken String   @db.Text @map("refresh_token")                                           // text NOT NULL
+  createdAt    DateTime @default(now()) @map("created_at")                                       // datetime NOT NULL default current_timestamp
+
+  @@map("user_tokens")
+}

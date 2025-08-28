@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import prisma from '@/lib/db';
 
 type BodyInput = {
   applicationId?: string;
@@ -16,8 +17,24 @@ export async function POST(req: Request) {
   if (!json || !json.applicationId) {
     return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   }
-  // Simplified: generate placeholder content without DB lookup
-  const coverLetter = generateCoverLetter({ fullName: 'Applicant', position: 'Position', company: 'Company' });
+  // Load the application and write a placeholder coverLetter back to DB
+  const app = await prisma.application.findUnique({
+    where: { id: BigInt(json.applicationId) },
+    select: { userName: true, businessName: true, applicationText: true },
+  }).catch(() => null);
+
+  const fullName = app?.userName || 'Applicant';
+  const company = app?.businessName || 'Company';
+  const position = (app?.applicationText || 'Position').replace(/^Position:\s*/i, '') || 'Position';
+
+  const coverLetter = generateCoverLetter({ fullName, position, company });
+
+  // Persist to DB (store in individualApplicat or cvText as placeholder storage)
+  await prisma.application.update({
+    where: { id: BigInt(json.applicationId) },
+    data: { individualApplicat: coverLetter },
+  }).catch(() => undefined);
+
   return NextResponse.json({ coverLetter });
 }
 
