@@ -22,16 +22,21 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma@5 generate
 
-      - name: Push schema to Supabase
-        run: npx prisma@5 db push
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # Generate SQL for the current Prisma datamodel (no local DB needed)
+      - name: Generate SQL from Prisma schema
+        run: npx prisma@5 migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > schema.sql
 
-      - name: DB connectivity smoke test
-        run: |
-          npm i pg --no-save --no-audit --no-fund
-          node -e "const {Client}=require('pg');(async()=>{try{const c=new Client({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:false}});await c.connect();const r=await c.query('select 1 as ok');console.log('DB_OK',r.rows[0]);process.exit(0);}catch(e){console.error('DB_FAIL',e);process.exit(1);}})()"
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Pooler connectivity smoke test
+        run: psql "$POOLER_URL" -v ON_ERROR_STOP=1 -c "select 1 as ok;"
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POOLER_URL: ${{ secrets.POOLER_URL }}
+
+      - name: Apply schema via pooler
+        run: psql "$POOLER_URL" -v ON_ERROR_STOP=1 -f schema.sql
+        env:
+          POOLER_URL: ${{ secrets.POOLER_URL }}
 
 
