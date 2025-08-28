@@ -1,11 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { getMessage } from '../../../../lib/gmail';
 
-type Params = { params: { id: string } };
-
-export async function GET(_req: Request, { params }: Params) {
+export async function GET(_req: NextRequest, context: { params: { id: string } }) {
   try {
-    const data = await getMessage(params.id);
+    const data = await getMessage(context.params.id);
     return NextResponse.json(data);
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 });
