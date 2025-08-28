@@ -1,4 +1,5 @@
-name: Prisma DB Push
+name: Prisma DB Push 2123123123123
+# "123123123123"
 
 on:
   workflow_dispatch:
@@ -23,6 +24,13 @@ jobs:
 
       - name: Push schema to Supabase
         run: npx prisma@5 db push
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: DB connectivity smoke test
+        run: |
+          npm i pg --no-save --no-audit --no-fund
+          node -e "const {Client}=require('pg');(async()=>{try{const c=new Client({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:false}});await c.connect();const r=await c.query('select 1 as ok');console.log('DB_OK',r.rows[0]);process.exit(0);}catch(e){console.error('DB_FAIL',e);process.exit(1);}})()"
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
