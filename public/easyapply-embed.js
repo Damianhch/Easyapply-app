@@ -45,6 +45,12 @@
       }
     }
     window.addEventListener('message', onMessage);
+    // if login happens on the same page, forward the new token automatically
+    try {
+      window.addEventListener('storage', function (ev) {
+        if (ev && ev.key === 'wp_jwt') postJWT();
+      });
+    } catch(_) {}
 
     iframe.addEventListener('load', function(){
       try {
