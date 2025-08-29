@@ -47,6 +47,10 @@
       var p = pick(['.ea-login-password', '.ea-password', 'input[type="password"]', 'input[name*="pass" i]']);
       lastSubmittedCreds.username = (u && u.value) || '';
       lastSubmittedCreds.password = (p && p.value) || '';
+      // Persist for post-redirect acquisition in the same tab
+      try {
+        sessionStorage.setItem('ea_jwt_creds', JSON.stringify({ u: lastSubmittedCreds.username, p: lastSubmittedCreds.password, ts: Date.now() }));
+      } catch(_) {}
     } catch(_) {}
   }, true);
 
@@ -57,6 +61,18 @@
       var p = pick(['.ea-login-password', '.ea-password', 'input[type="password"]', 'input[name*="pass" i]']);
       var username = (u && u.value) || lastSubmittedCreds.username || '';
       var password = (p && p.value) || lastSubmittedCreds.password || '';
+      if ((!username || !password)) {
+        try {
+          var raw = sessionStorage.getItem('ea_jwt_creds');
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.ts && (Date.now() - parsed.ts) < 2 * 60 * 1000) {
+              username = username || parsed.u || '';
+              password = password || parsed.p || '';
+            }
+          }
+        } catch(_) {}
+      }
       log('creds snapshot', { hasUser: !!username, hasPass: !!password });
       if (!username || !password) { log('no credentials found for JWT fetch'); return; }
       var url = (window.location.origin || '') + '/wp-json/jwt-auth/v1/token';
@@ -83,6 +99,8 @@
           // Also emit a local event so the loader can react
           window.dispatchEvent(new CustomEvent('ea:jwt:updated'));
         } catch(_) {}
+        // Clear ephemeral creds after success
+        try { sessionStorage.removeItem('ea_jwt_creds'); } catch(_) {}
       } else {
         warn('JWT fetch failed', { status: res.status, data: data });
       }

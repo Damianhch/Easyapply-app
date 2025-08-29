@@ -66,8 +66,8 @@
         // handshake & initial JWT
         iframe.contentWindow && iframe.contentWindow.postMessage({ type: 'EA_PARENT_READY', origin: window.location.origin }, appOrigin);
         postJWT();
-        // Poll a few times after load in case login happens via AJAX without a page reload
-        var tries = 0; var t = setInterval(function(){ tries++; postJWT(); if (tries > 10) clearInterval(t); }, 500);
+        // Poll for a short window after load and after navigation
+        var tries = 0; var t = setInterval(function(){ tries++; postJWT(); if (tries > 20) clearInterval(t); }, 500);
       } catch(e) { log('handshake error', e && (e.message||e)); }
     });
 
