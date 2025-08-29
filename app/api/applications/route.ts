@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { verifyJWT } from '@/lib/auth';
+export const dynamic = 'force-dynamic';
 
 type ApplicationInput = {
   fullName?: string;

@@ -12,15 +12,17 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:push": "prisma db push",
-    "setup:phase0": "node scripts/setup-phase0.js"
+    "setup:phase0": "node scripts/setup-phase0.js",
+    "vercel-build": "prisma generate && next build",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "next": "15.0.3",
     "react": "^18",
     "react-dom": "^18",
     "zod": "^3.22.4",
-    "@prisma/client": "^5.7.1",
-    "prisma": "^5.7.1",
+    "@prisma/client": "5.22.0",
+    "prisma": "5.22.0",
     "jsonwebtoken": "^9.0.2",
     "stripe": "^14.10.0",
     "@supabase/supabase-js": "^2.38.5",
