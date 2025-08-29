@@ -11,6 +11,9 @@ type ApplicationInput = {
   company?: string;
   resumeUrl?: string;
   metadata?: unknown;
+  acceptedTerms?: boolean;
+  acceptedTimestamp?: string;
+  planTier?: string;
 };
 
 function getBearerToken(req: NextRequest): string | null {
@@ -28,25 +31,31 @@ export async function POST(req: NextRequest) {
 
     const body = (await req.json().catch(() => null)) as ApplicationInput | null;
     if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    const tokenEmail = (payload as any)?.email as string | undefined;
     const missing: string[] = [];
     if (!body.fullName) missing.push('fullName');
-    if (!body.email) missing.push('email');
+    if (!tokenEmail && !body.email) missing.push('email');
     if (!body.position) missing.push('position');
     if (!body.company) missing.push('company');
     if (missing.length) {
       return NextResponse.json({ error: 'Missing required fields', missing }, { status: 400 });
     }
 
+    const clientIp = (req.headers.get('x-forwarded-for') || '').split(',')[0]?.trim() || null;
     const created = await prisma.application.create({
       data: {
-        userEmail: body.email,
+        userEmail: tokenEmail ?? body.email ?? null,
         userName: body.fullName,
         businessName: body.company,
         applicationText: `Position: ${body.position}`,
         status: 'PENDING',
-        acceptedTerms: false,
-        planTier: 'FREE',
+        acceptedTerms: Boolean(body.acceptedTerms),
+        acceptedTimestamp: body.acceptedTerms
+          ? (body.acceptedTimestamp ? new Date(body.acceptedTimestamp) : new Date())
+          : null,
+        planTier: body.planTier ?? 'FREE',
         userPhone: body.phone ?? null,
+        tosIp: clientIp,
       },
       select: { id: true },
     });
