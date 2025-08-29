@@ -35,13 +35,28 @@
     return null;
   }
 
+  function setCookie(name, value) {
+    try { document.cookie = name + '=' + encodeURIComponent(value) + '; path=/; SameSite=Lax'; } catch(_) {}
+  }
+
+  // Snapshot credentials at submit time so we still have them after Forminator clears fields
+  var lastSubmittedCreds = { username: '', password: '' };
+  document.addEventListener('submit', function (ev) {
+    try {
+      var u = pick(['.ea-login-username', '.ea-user-email', 'input[type="email"]', 'input[name*="email" i]', 'input[name*="user" i]', 'input[name*="login" i]']);
+      var p = pick(['.ea-login-password', '.ea-password', 'input[type="password"]', 'input[name*="pass" i]']);
+      lastSubmittedCreds.username = (u && u.value) || '';
+      lastSubmittedCreds.password = (p && p.value) || '';
+    } catch(_) {}
+  }, true);
+
   async function trySetJWTFromForm() {
     try {
       // Prefer explicit classes, fallback to common selectors
       var u = pick(['.ea-login-username', '.ea-user-email', 'input[type="email"]', 'input[name*="email" i]', 'input[name*="user" i]', 'input[name*="login" i]']);
       var p = pick(['.ea-login-password', '.ea-password', 'input[type="password"]', 'input[name*="pass" i]']);
-      var username = (u && u.value) || '';
-      var password = (p && p.value) || '';
+      var username = (u && u.value) || lastSubmittedCreds.username || '';
+      var password = (p && p.value) || lastSubmittedCreds.password || '';
       if (!username || !password) { log('no credentials found for JWT fetch'); return; }
       var url = (window.location.origin || '') + '/wp-json/jwt-auth/v1/token';
       log('fetch JWT', url);
@@ -53,6 +68,7 @@
       var data = await res.json().catch(function(){ return {}; });
       if (data && data.token) {
         window.localStorage && window.localStorage.setItem('wp_jwt', data.token);
+        setCookie('ea_jwt', data.token);
         log('stored wp_jwt');
         // Immediately push to any EA iframes on the page (storage event won't fire in same tab)
         try {

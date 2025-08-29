@@ -27,6 +27,13 @@
     function postJWT() {
       try {
         var jwt = (window.localStorage && window.localStorage.getItem('wp_jwt')) || null;
+        if (!jwt) {
+          // Fallback: read from cookie set by bridge (works in incognito/partitioned scenarios as long as same-site)
+          try {
+            var m = document.cookie.match(/(?:^|; )ea_jwt=([^;]+)/);
+            if (m) jwt = decodeURIComponent(m[1]);
+          } catch(_) {}
+        }
         iframe.contentWindow && iframe.contentWindow.postMessage({ type: 'EA_JWT', jwt: jwt }, appOrigin);
         log('sent EA_JWT');
       } catch (e) { log('EA_JWT error', e && (e.message||e)); }
@@ -59,6 +66,8 @@
         // handshake & initial JWT
         iframe.contentWindow && iframe.contentWindow.postMessage({ type: 'EA_PARENT_READY', origin: window.location.origin }, appOrigin);
         postJWT();
+        // Poll a few times after load in case login happens via AJAX without a page reload
+        var tries = 0; var t = setInterval(function(){ tries++; postJWT(); if (tries > 10) clearInterval(t); }, 500);
       } catch(e) { log('handshake error', e && (e.message||e)); }
     });
 
