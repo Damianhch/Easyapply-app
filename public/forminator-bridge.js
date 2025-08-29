@@ -57,6 +57,7 @@
       var p = pick(['.ea-login-password', '.ea-password', 'input[type="password"]', 'input[name*="pass" i]']);
       var username = (u && u.value) || lastSubmittedCreds.username || '';
       var password = (p && p.value) || lastSubmittedCreds.password || '';
+      log('creds snapshot', { hasUser: !!username, hasPass: !!password });
       if (!username || !password) { log('no credentials found for JWT fetch'); return; }
       var url = (window.location.origin || '') + '/wp-json/jwt-auth/v1/token';
       log('fetch JWT', url);
@@ -137,6 +138,10 @@
     postApplication();
     // Also attempt to store JWT if credentials are present on the same form/page
     trySetJWTFromForm();
+    // Retry a few times in case fields clear before we fetch
+    setTimeout(trySetJWTFromForm, 500);
+    setTimeout(trySetJWTFromForm, 1500);
+    setTimeout(trySetJWTFromForm, 3000);
   });
   window.EasyApplyBridge = { submit: postApplication };
 
@@ -151,6 +156,19 @@
     btn.onclick = postApplication;
     document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(btn); });
   }
+
+  // Generic safety net: hook submit buttons and form submissions to attempt JWT fetch
+  (function attachSubmitHooks(){
+    try {
+      document.addEventListener('click', function(ev){
+        var t = ev.target;
+        if (!t) return;
+        var isBtn = (t.matches && (t.matches('button[type="submit"]') || t.matches('input[type="submit"]')));
+        if (isBtn) { setTimeout(trySetJWTFromForm, 300); setTimeout(trySetJWTFromForm, 1200); }
+      }, true);
+      document.addEventListener('submit', function(){ setTimeout(trySetJWTFromForm, 300); setTimeout(trySetJWTFromForm, 1200); }, true);
+    } catch(_) {}
+  })();
 })();
 
 
