@@ -12,7 +12,7 @@ export default function InlineEmbedPage(props: any) {
 	useEffect(() => {
 		function sendHeight() {
 			const height = document.body.scrollHeight;
-			window.parent?.postMessage({ type: 'easyapply-embed:resize', height }, '*');
+			window.parent?.postMessage({ type: 'EA_RESIZE', height }, '*');
 		}
 		sendHeight();
 		const observer = new ResizeObserver(sendHeight);
