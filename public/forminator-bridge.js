@@ -38,9 +38,9 @@
   async function trySetJWTFromForm() {
     try {
       // Prefer explicit classes, fallback to common selectors
-      var u = pick(['.ea-login-username', '.ea-user-email', 'input[type="email"]', 'input[name*="email" i]']);
+      var u = pick(['.ea-login-username', '.ea-user-email', 'input[type="email"]', 'input[name*="email" i]', 'input[name*="user" i]', 'input[name*="login" i]']);
       var p = pick(['.ea-login-password', '.ea-password', 'input[type="password"]', 'input[name*="pass" i]']);
-      var username = (u && u.value) || (e && e.value) || '';
+      var username = (u && u.value) || '';
       var password = (p && p.value) || '';
       if (!username || !password) { log('no credentials found for JWT fetch'); return; }
       var url = (window.location.origin || '') + '/wp-json/jwt-auth/v1/token';
@@ -54,6 +54,18 @@
       if (data && data.token) {
         window.localStorage && window.localStorage.setItem('wp_jwt', data.token);
         log('stored wp_jwt');
+        // Immediately push to any EA iframes on the page (storage event won't fire in same tab)
+        try {
+          var iframes = document.querySelectorAll('iframe[src*="/embed/"]');
+          for (var i=0;i<iframes.length;i++) {
+            var ifr = iframes[i];
+            if (ifr && ifr.contentWindow) {
+              ifr.contentWindow.postMessage({ type: 'EA_JWT', jwt: data.token }, ORIGIN);
+            }
+          }
+          // Also emit a local event so the loader can react
+          window.dispatchEvent(new CustomEvent('ea:jwt:updated'));
+        } catch(_) {}
       } else {
         warn('JWT fetch failed', { status: res.status, data: data });
       }

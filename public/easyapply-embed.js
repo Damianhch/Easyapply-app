@@ -50,6 +50,8 @@
       window.addEventListener('storage', function (ev) {
         if (ev && ev.key === 'wp_jwt') postJWT();
       });
+      // Also listen for a same-tab custom event emitted by the bridge
+      window.addEventListener('ea:jwt:updated', function(){ postJWT(); });
     } catch(_) {}
 
     iframe.addEventListener('load', function(){
