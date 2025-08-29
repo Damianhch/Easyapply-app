@@ -1,5 +1,6 @@
 import { getSection } from '../../../components/SectionRegistry';
 import { notFound } from 'next/navigation';
+export const dynamic = 'force-dynamic';
 
 export default function SectionPage(props: any) {
   const params = (props as any)?.params ?? {};

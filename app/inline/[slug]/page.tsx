@@ -2,6 +2,7 @@
 import { getSection } from '../../../components/SectionRegistry';
 import { notFound } from 'next/navigation';
 import React, { useEffect } from 'react';
+export const dynamic = 'force-dynamic';
 
 export default function InlineEmbedPage(props: any) {
 	const params = (props as any)?.params ?? {};
