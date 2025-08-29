@@ -15,17 +15,24 @@ export default function EmbedPage(props: any) {
   const [parentOrigin, setParentOrigin] = useState<string | null>(null);
   const [tokenReady, setTokenReady] = useState<boolean>(!!getToken());
   const originRef = useRef<string | null>(null);
+  const debug = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return /[?&]ea_debug=1\b/i.test(window.location.search);
+  }, []);
 
   useEffect(() => {
     function onMessage(evt: MessageEvent) {
       const data: any = evt.data || {};
+      if (debug) try { console.log('[EA IFRAME] msg', evt.origin, data && data.type); } catch {}
       if (data && data.type === 'EA_PARENT_READY' && typeof data.origin === 'string') {
         originRef.current = data.origin;
         setParentOrigin(data.origin);
       } else if (data && data.type === 'EA_JWT') {
+        if (!originRef.current) originRef.current = evt.origin;
         if (!originRef.current || evt.origin.indexOf(window.location.origin) === 0 || evt.origin === originRef.current) {
           setToken(typeof data.jwt === 'string' ? data.jwt : null);
           setTokenReady(!!data.jwt);
+          if (debug) try { console.log('[EA IFRAME] token set:', !!data.jwt); } catch {}
         }
       }
     }
