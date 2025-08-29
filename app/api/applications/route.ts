@@ -19,73 +19,86 @@ function getBearerToken(req: NextRequest): string | null {
 }
 
 export async function POST(req: NextRequest) {
-  const token = getBearerToken(req);
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const payload = verifyJWT(token);
-  if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+  try {
+    const token = getBearerToken(req);
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const payload = verifyJWT(token);
+    if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
-  const body = (await req.json().catch(() => null)) as ApplicationInput | null;
-  if (!body || !body.fullName || !body.email || !body.position || !body.company) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    const body = (await req.json().catch(() => null)) as ApplicationInput | null;
+    if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    const missing: string[] = [];
+    if (!body.fullName) missing.push('fullName');
+    if (!body.email) missing.push('email');
+    if (!body.position) missing.push('position');
+    if (!body.company) missing.push('company');
+    if (missing.length) {
+      return NextResponse.json({ error: 'Missing required fields', missing }, { status: 400 });
+    }
+
+    const created = await prisma.application.create({
+      data: {
+        userEmail: body.email,
+        userName: body.fullName,
+        businessName: body.company,
+        applicationText: `Position: ${body.position}`,
+        status: 'PENDING',
+        acceptedTerms: false,
+        planTier: 'FREE',
+        userPhone: body.phone ?? null,
+      },
+      select: { id: true },
+    });
+
+    return NextResponse.json({ id: created.id.toString() });
+  } catch (error: any) {
+    console.error('POST /api/applications failed', error);
+    return NextResponse.json({ error: 'Internal error', detail: String(error?.message ?? error) }, { status: 500 });
   }
-
-  // Map incoming fields to Application columns aligned with Database-structure.html
-  const created = await prisma.application.create({
-    data: {
-      userEmail: body.email,
-      userName: body.fullName,
-      businessName: body.company,
-      applicationText: `Position: ${body.position}`,
-      status: 'PENDING',
-      acceptedTerms: false,
-      planTier: 'FREE',
-      userPhone: body.phone ?? null,
-    },
-    select: { id: true },
-  });
-
-  // JSON cannot serialize BigInt; return as string
-  return NextResponse.json({ id: created.id.toString() });
 }
 
 export async function GET(req: NextRequest) {
-  const token = getBearerToken(req);
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const payload = verifyJWT(token);
-  if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+  try {
+    const token = getBearerToken(req);
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const payload = verifyJWT(token);
+    if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
-  // Prefer filtering by email from token when available
-  const userEmail = (payload as any).email as string | undefined;
-  if (!userEmail) {
-    return NextResponse.json({ error: 'Token missing email' }, { status: 401 });
+    const userEmail = (payload as any).email as string | undefined;
+    if (!userEmail) {
+      return NextResponse.json({ error: 'Token missing email' }, { status: 401 });
+    }
+
+    const rows = await prisma.application.findMany({
+      where: { userEmail },
+      orderBy: { applicatioSubmitted: 'desc' },
+      select: {
+        id: true,
+        userEmail: true,
+        userName: true,
+        businessName: true,
+        applicationText: true,
+        status: true,
+        planTier: true,
+        applicatioSubmitted: true,
+      },
+    });
+
+    const items = rows.map(r => ({
+      id: r.id.toString(),
+      userEmail: r.userEmail,
+      userName: r.userName,
+      businessName: r.businessName,
+      applicationText: r.applicationText,
+      status: r.status,
+      planTier: r.planTier,
+      applicatioSubmitted: r.applicatioSubmitted,
+    }));
+    return NextResponse.json({ items });
+  } catch (error: any) {
+    console.error('GET /api/applications failed', error);
+    return NextResponse.json({ error: 'Internal error', detail: String(error?.message ?? error) }, { status: 500 });
   }
-
-  const rows = await prisma.application.findMany({
-    where: { userEmail },
-    orderBy: { applicatioSubmitted: 'desc' },
-    select: {
-      id: true,
-      userEmail: true,
-      userName: true,
-      businessName: true,
-      applicationText: true,
-      status: true,
-      planTier: true,
-      applicatioSubmitted: true,
-    },
-  });
-
-  const items = rows.map(r => ({
-    id: r.id.toString(),
-    userEmail: r.userEmail,
-    userName: r.userName,
-    businessName: r.businessName,
-    applicationText: r.applicationText,
-    status: r.status,
-    planTier: r.planTier,
-    applicatioSubmitted: r.applicatioSubmitted,
-  }));
-  return NextResponse.json({ items });
 }
 
 

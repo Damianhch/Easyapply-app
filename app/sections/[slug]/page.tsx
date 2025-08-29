@@ -1,9 +1,8 @@
 import { getSection } from '../../../components/SectionRegistry';
 import { notFound } from 'next/navigation';
 
-type Params = { params: { slug: string } };
-
-export default function SectionPage({ params }: Params) {
+export default function SectionPage(props: any) {
+  const params = (props as any)?.params ?? {};
   const section = getSection(params.slug);
   if (!section) return notFound();
   return (
