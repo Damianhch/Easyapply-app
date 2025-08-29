@@ -22,6 +22,25 @@ function getBearerToken(req: NextRequest): string | null {
   return null;
 }
 
+function extractIdentity(payload: any): { email?: string; wpUserId?: string } {
+  try {
+    const email = payload?.email
+      || payload?.user_email
+      || payload?.data?.user?.email
+      || payload?.data?.email
+      || undefined;
+    const rawId = payload?.sub
+      || payload?.user_id
+      || payload?.data?.user?.id
+      || payload?.data?.id
+      || undefined;
+    const wpUserId = rawId !== undefined && rawId !== null ? String(rawId) : undefined;
+    return { email, wpUserId };
+  } catch {
+    return {};
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const token = getBearerToken(req);
@@ -31,8 +50,7 @@ export async function POST(req: NextRequest) {
 
     const body = (await req.json().catch(() => null)) as ApplicationInput | null;
     if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-    const tokenEmail = (payload as any)?.email as string | undefined;
-    const tokenSub = (payload as any)?.sub as string | undefined;
+    const { email: tokenEmail, wpUserId: tokenSub } = extractIdentity(payload);
     const missing: string[] = [];
     if (!body.fullName) missing.push('fullName');
     if (!tokenEmail && !body.email) missing.push('email');
@@ -76,8 +94,7 @@ export async function GET(req: NextRequest) {
     const payload = verifyJWT(token);
     if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
-    const userEmail = (payload as any)?.email as string | undefined;
-    const wpUserId = (payload as any)?.sub as string | undefined;
+    const { email: userEmail, wpUserId } = extractIdentity(payload);
     if (!userEmail && !wpUserId) {
       return NextResponse.json({ error: 'Token missing sub/email' }, { status: 401 });
     }
