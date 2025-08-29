@@ -40,6 +40,8 @@
         iframe.style.height = data.height + 'px';
       } else if (data.type === 'EA_REQUEST_JWT') {
         postJWT();
+      } else if (data.type === 'EA_REDIRECT' && typeof data.url === 'string') {
+        try { window.location.href = data.url; } catch(_) {}
       }
     }
     window.addEventListener('message', onMessage);

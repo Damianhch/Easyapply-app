@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState } from 'react';
+import { authFetch } from '../../lib/net/authFetch';
 
 export default function InlineApply() {
   const [step, setStep] = useState(0);
@@ -24,7 +25,7 @@ export default function InlineApply() {
         position: answers.q1 || '',
         company: answers.q2 || '',
       };
-      const res = await fetch('/api/applications', {
+      const res = await authFetch('/api/applications', {
         method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -37,6 +38,10 @@ export default function InlineApply() {
         setResult({ ok: false, status: res.status, message: (data && (data.error || data.message)) || 'Request failed' });
       } else {
         setResult({ ok: true, status: res.status, message: 'Created' });
+        try {
+          // Ask parent to redirect on success (works when embedded)
+          window.parent && window.parent.postMessage({ type: 'EA_REDIRECT', url: 'https://easyapply.asoldi.com/bestilling/' }, '*');
+        } catch {}
       }
     } catch (e: any) {
       setResult({ ok: false, message: String(e?.message || e) });
