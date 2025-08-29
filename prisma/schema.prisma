@@ -13,6 +13,7 @@ datasource db {
 // Application table aligned to Database-structure.html
 model Application {
   id                   BigInt   @id @default(autoincrement())                                    // bigint(20) AUTO_INCREMENT
+  wpUserId             String?  @db.VarChar(255) @map("wp_user_id")                               // WordPress user id (string)
   userEmail            String?  @db.VarChar(255) @map("user_email")                              // varchar(255) NULL
   userName             String?  @db.VarChar(255) @map("user_name")                               // varchar(255) NULL
   applicationText      String?  @db.Text @map("application_text")                                // text NULL

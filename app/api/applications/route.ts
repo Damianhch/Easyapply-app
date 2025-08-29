@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json().catch(() => null)) as ApplicationInput | null;
     if (!body) return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     const tokenEmail = (payload as any)?.email as string | undefined;
+    const tokenSub = (payload as any)?.sub as string | undefined;
     const missing: string[] = [];
     if (!body.fullName) missing.push('fullName');
     if (!tokenEmail && !body.email) missing.push('email');
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
     const clientIp = (req.headers.get('x-forwarded-for') || '').split(',')[0]?.trim() || null;
     const created = await prisma.application.create({
       data: {
+        wpUserId: tokenSub ?? null,
         userEmail: tokenEmail ?? body.email ?? null,
         userName: body.fullName,
         businessName: body.company,
@@ -74,16 +76,23 @@ export async function GET(req: NextRequest) {
     const payload = verifyJWT(token);
     if (!payload) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
 
-    const userEmail = (payload as any).email as string | undefined;
-    if (!userEmail) {
-      return NextResponse.json({ error: 'Token missing email' }, { status: 401 });
+    const userEmail = (payload as any)?.email as string | undefined;
+    const wpUserId = (payload as any)?.sub as string | undefined;
+    if (!userEmail && !wpUserId) {
+      return NextResponse.json({ error: 'Token missing sub/email' }, { status: 401 });
     }
 
     const rows = await prisma.application.findMany({
-      where: { userEmail },
+      where: {
+        OR: [
+          userEmail ? { userEmail } : undefined,
+          wpUserId ? { wpUserId } : undefined,
+        ].filter(Boolean) as any,
+      },
       orderBy: { applicatioSubmitted: 'desc' },
       select: {
         id: true,
+        wpUserId: true,
         userEmail: true,
         userName: true,
         businessName: true,
@@ -96,6 +105,7 @@ export async function GET(req: NextRequest) {
 
     const items = rows.map(r => ({
       id: r.id.toString(),
+      wpUserId: r.wpUserId,
       userEmail: r.userEmail,
       userName: r.userName,
       businessName: r.businessName,
