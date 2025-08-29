@@ -30,6 +30,34 @@
     };
   }
 
+  async function trySetJWTFromForm() {
+    try {
+      // Prefer explicit login form classes
+      var u = document.querySelector('.ea-login-username');
+      var p = document.querySelector('.ea-login-password');
+      // Or registration-style classes
+      var e = document.querySelector('.ea-user-email');
+      var rp = document.querySelector('.ea-password');
+      var username = (u && u.value) || (e && e.value) || '';
+      var password = (p && p.value) || (rp && rp.value) || '';
+      if (!username || !password) { log('no credentials found for JWT fetch'); return; }
+      var url = (window.location.origin || '') + '/wp-json/jwt-auth/v1/token';
+      log('fetch JWT', url);
+      var res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ username: username, password: password })
+      });
+      var data = await res.json().catch(function(){ return {}; });
+      if (data && data.token) {
+        window.localStorage && window.localStorage.setItem('wp_jwt', data.token);
+        log('stored wp_jwt');
+      } else {
+        warn('JWT fetch failed', { status: res.status, data: data });
+      }
+    } catch (e) { warn('JWT fetch error', e && (e.message || e)); }
+  }
+
   async function postApplication() {
     var token = (window.localStorage && window.localStorage.getItem('wp_jwt')) || '';
     if (!token) { warn('Missing JWT (localStorage.wp_jwt)'); }
@@ -77,6 +105,8 @@
   document.addEventListener('forminator:form:submit:success', function () {
     log('Forminator success event caught');
     postApplication();
+    // Also attempt to store JWT if credentials are present on the same form/page
+    trySetJWTFromForm();
   });
   window.EasyApplyBridge = { submit: postApplication };
 
