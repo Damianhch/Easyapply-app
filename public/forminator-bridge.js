@@ -30,16 +30,18 @@
     };
   }
 
+  function pick(selArr) {
+    for (var i=0;i<selArr.length;i++){ var el=document.querySelector(selArr[i]); if(el) return el; }
+    return null;
+  }
+
   async function trySetJWTFromForm() {
     try {
-      // Prefer explicit login form classes
-      var u = document.querySelector('.ea-login-username');
-      var p = document.querySelector('.ea-login-password');
-      // Or registration-style classes
-      var e = document.querySelector('.ea-user-email');
-      var rp = document.querySelector('.ea-password');
+      // Prefer explicit classes, fallback to common selectors
+      var u = pick(['.ea-login-username', '.ea-user-email', 'input[type="email"]', 'input[name*="email" i]']);
+      var p = pick(['.ea-login-password', '.ea-password', 'input[type="password"]', 'input[name*="pass" i]']);
       var username = (u && u.value) || (e && e.value) || '';
-      var password = (p && p.value) || (rp && rp.value) || '';
+      var password = (p && p.value) || '';
       if (!username || !password) { log('no credentials found for JWT fetch'); return; }
       var url = (window.location.origin || '') + '/wp-json/jwt-auth/v1/token';
       log('fetch JWT', url);
