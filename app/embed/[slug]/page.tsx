@@ -54,6 +54,9 @@ export default function EmbedPage(props: any) {
 
   return (
     <div style={{ padding: 0, margin: 0, background: '#fff', color: '#111', fontFamily: 'ui-sans-serif, system-ui' }}>
+      <pre style={{ display: typeof window !== 'undefined' && /ea_debug=1/i.test(window.location.search) ? 'block' : 'none', background:'#f1f5f9', padding:8, overflow:'auto' }}>
+        {`parentOrigin=${parentOrigin || 'null'}\ntokenReady=${tokenReady}`}
+      </pre>
       {!tokenReady && (
         <div style={{ padding: 12, marginBottom: 12, background: '#fff7ed', border: '1px solid #fed7aa' }}>
           Please log in on the main site to continue.

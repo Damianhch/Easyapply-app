@@ -14,7 +14,8 @@
     var debug = !!((options && options.debug) || (s && s.getAttribute('data-debug')) || window.EASYAPPLY_DEBUG);
 
     var iframe = document.createElement('iframe');
-    iframe.src = appOrigin.replace(/\/$/, '') + '/embed/' + encodeURIComponent(slug);
+    var src = appOrigin.replace(/\/$/, '') + '/embed/' + encodeURIComponent(slug) + (debug ? '?ea_debug=1' : '');
+    iframe.src = src;
     iframe.style.width = '100%';
     iframe.style.border = '0';
     iframe.style.minHeight = minHeightAttr;
