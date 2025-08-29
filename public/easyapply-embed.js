@@ -39,6 +39,30 @@
       } catch (e) { log('EA_JWT error', e && (e.message||e)); }
     }
 
+    async function tryAcquireJWTFromSessionCreds() {
+      try {
+        var exists = (window.localStorage && window.localStorage.getItem('wp_jwt')) || document.cookie.indexOf('ea_jwt=') >= 0;
+        if (exists) return;
+        var raw = null;
+        try { raw = sessionStorage.getItem('ea_jwt_creds'); } catch(_) {}
+        if (!raw) return;
+        var parsed = null; try { parsed = JSON.parse(raw); } catch(_) {}
+        if (!parsed || !parsed.u || !parsed.p) return;
+        if (parsed.ts && (Date.now() - parsed.ts) > 2 * 60 * 1000) return; // stale
+        var url = (window.location.origin || '') + '/wp-json/jwt-auth/v1/token';
+        var res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:new URLSearchParams({ username: parsed.u, password: parsed.p }) });
+        var data = await res.json().catch(function(){ return {}; });
+        if (data && data.token) {
+          try { window.localStorage && window.localStorage.setItem('wp_jwt', data.token); } catch(_){ }
+          try { document.cookie = 'ea_jwt=' + encodeURIComponent(data.token) + '; path=/; SameSite=Lax'; } catch(_){ }
+          try { sessionStorage.removeItem('ea_jwt_creds'); } catch(_){ }
+          log('acquired JWT post-redirect');
+          postJWT();
+          try { window.dispatchEvent(new CustomEvent('ea:jwt:updated')); } catch(_) {}
+        }
+      } catch(_) {}
+    }
+
     function onMessage(event) {
       // only accept messages from the app origin
       if (!event || event.origin !== appOrigin) return;
@@ -59,6 +83,9 @@
       });
       // Also listen for a same-tab custom event emitted by the bridge
       window.addEventListener('ea:jwt:updated', function(){ postJWT(); });
+      // After redirect, attempt to acquire JWT using saved credentials
+      tryAcquireJWTFromSessionCreds();
+      setTimeout(tryAcquireJWTFromSessionCreds, 1200);
     } catch(_) {}
 
     iframe.addEventListener('load', function(){
