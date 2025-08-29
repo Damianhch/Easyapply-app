@@ -34,8 +34,23 @@
             if (m) jwt = decodeURIComponent(m[1]);
           } catch(_) {}
         }
+        if (!jwt) {
+          // Fallback: read from URL fragment if storage is blocked
+          try {
+            var m = window.location.hash.match(/#ea_token=([^&]+)/);
+            if (m) {
+              jwt = decodeURIComponent(m[1]);
+              log('got JWT from URL fragment');
+              // Store it for future use if possible
+              try { window.localStorage && window.localStorage.setItem('wp_jwt', jwt); } catch(_) {}
+              try { document.cookie = 'ea_jwt=' + encodeURIComponent(jwt) + '; path=/; SameSite=Lax'; } catch(_) {}
+              // Clean up URL
+              try { window.history.replaceState({}, '', window.location.href.replace(/#ea_token=[^&]*/, '')); } catch(_) {}
+            }
+          } catch(_) {}
+        }
         iframe.contentWindow && iframe.contentWindow.postMessage({ type: 'EA_JWT', jwt: jwt }, appOrigin);
-        log('sent EA_JWT');
+        log('sent EA_JWT', { hasToken: !!jwt, tokenPrefix: jwt ? jwt.slice(0,20) + '...' : 'null' });
       } catch (e) { log('EA_JWT error', e && (e.message||e)); }
     }
 

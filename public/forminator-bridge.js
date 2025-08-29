@@ -73,7 +73,7 @@
           }
         } catch(_) {}
       }
-      log('creds snapshot', { hasUser: !!username, hasPass: !!password });
+      log('creds snapshot', { hasUser: !!username, hasPass: !!password, userAgent: navigator.userAgent.slice(0,50) });
       if (!username || !password) { log('no credentials found for JWT fetch'); return; }
       var url = (window.location.origin || '') + '/wp-json/jwt-auth/v1/token';
       log('fetch JWT', url);
@@ -83,10 +83,12 @@
         body: new URLSearchParams({ username: username, password: password })
       });
       var data = await res.json().catch(function(){ return {}; });
+      log('JWT response', { status: res.status, hasToken: !!(data && data.token), dataKeys: Object.keys(data || {}) });
       if (data && data.token) {
-        window.localStorage && window.localStorage.setItem('wp_jwt', data.token);
-        setCookie('ea_jwt', data.token);
-        log('stored wp_jwt');
+        var storageWorked = false, cookieWorked = false;
+        try { window.localStorage && window.localStorage.setItem('wp_jwt', data.token); storageWorked = true; } catch(e) { warn('localStorage failed', e.message); }
+        try { setCookie('ea_jwt', data.token); cookieWorked = true; } catch(e) { warn('cookie failed', e.message); }
+        log('stored wp_jwt', { localStorage: storageWorked, cookie: cookieWorked });
         // Immediately push to any EA iframes on the page (storage event won't fire in same tab)
         try {
           var iframes = document.querySelectorAll('iframe[src*="/embed/"]');
@@ -101,6 +103,17 @@
         } catch(_) {}
         // Clear ephemeral creds after success
         try { sessionStorage.removeItem('ea_jwt_creds'); } catch(_) {}
+        // FALLBACK: If storage is blocked, try to pass token via URL fragment to next page
+        if (!storageWorked && !cookieWorked) {
+          try {
+            var redirectUrl = window.location.href;
+            if (redirectUrl.indexOf('#ea_token=') === -1) {
+              redirectUrl += '#ea_token=' + encodeURIComponent(data.token);
+              log('appending token to URL as fallback');
+              setTimeout(function(){ window.location.href = redirectUrl; }, 100);
+            }
+          } catch(_) {}
+        }
       } else {
         warn('JWT fetch failed', { status: res.status, data: data });
       }
